@@ -1,23 +1,35 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mail, Lock, Loader2, AlertCircle, ArrowRight, UserPlus, LogIn } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Mail, Lock, Loader2, ArrowRight, UserPlus, LogIn, User } from 'lucide-react';
 import { getApiUrl } from '../apiConfig';
+import { useToast } from '../context/ToastContext';
 
 interface AuthFormProps {
-  onSuccess: (user: { email: string }) => void;
+  onSuccess: (user: { email: string; displayName?: string }) => void;
 }
 
 export default function AuthForm({ onSuccess }: AuthFormProps) {
+  const { showToast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+
+    if (!isLogin && displayName) {
+      if (displayName.length > 12) {
+        showToast('Display name max 12 characters', 'error');
+        return;
+      }
+      if (!/^[a-zA-Z0-9']+$/.test(displayName)) {
+        showToast("Only letters, numbers and ' allowed in display name", 'error');
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
@@ -26,7 +38,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
       const response = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, ...(isLogin ? {} : { displayName }) }),
       });
 
       const data = await response.json();
@@ -35,9 +47,10 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
         throw new Error(data.error || 'Something went wrong');
       }
 
+      showToast(isLogin ? 'Welcome back!' : 'Account created successfully!', 'success');
       onSuccess(data.user);
     } catch (err: any) {
-      setError(err.message);
+      showToast(err.message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +75,24 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {!isLogin && (
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 ml-1">Display Name</label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
+              <input
+                type="text"
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your name"
+                maxLength={12}
+                className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2">
           <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 ml-1">Email Address</label>
           <div className="relative">
@@ -91,20 +122,6 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
             />
           </div>
         </div>
-
-        <AnimatePresence mode="wait">
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl flex items-start gap-3 text-red-600 dark:text-red-400 text-sm"
-            >
-              <AlertCircle className="shrink-0 mt-0.5" size={18} />
-              <p className="font-medium">{error}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <button
           type="submit"

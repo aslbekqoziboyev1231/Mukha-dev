@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { getApiUrl } from './apiConfig';
 
 export default function App() {
-  const [user, setUser] = useState<{ email: string; isAdmin?: boolean } | null>(null);
+  const [user, setUser] = useState<{ email: string; displayName?: string; isAdmin?: boolean } | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [view, setView] = useState<'chat' | 'admin'>('chat');
 
@@ -56,15 +56,15 @@ export default function App() {
               onOpenAdmin={() => setView('admin')} 
             />
           ) : (
-            <div className="bg-white rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden">
-              <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-colors duration-300">
+              <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
                 <button 
                   onClick={() => setView('chat')}
-                  className="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all flex items-center gap-2"
                 >
                   ← Back to Chat
                 </button>
-                <span className="text-xs font-bold text-brand-600 uppercase tracking-widest">Admin Mode</span>
+                <span className="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-widest">Admin Mode</span>
               </div>
               <div className="max-h-[80vh] overflow-y-auto">
                 <AdminPanel />
@@ -73,7 +73,9 @@ export default function App() {
           )}
         </div>
       ) : (
-        <AuthForm onSuccess={setUser} />
+        <div className="dark w-full flex justify-center">
+          <AuthForm onSuccess={setUser} />
+        </div>
       )}
     </div>
   );

@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Trash2, Sparkles, LogOut, Menu, X, Clock, MessageSquare, Shield, Sun, Moon, ExternalLink } from 'lucide-react';
+import { Send, Bot, User, Loader2, Trash2, Sparkles, LogOut, Menu, X, Clock, MessageSquare, Shield, Sun, Moon, ExternalLink, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import { getChatResponse } from '../services/gemini';
 import { cn } from '../lib/utils';
 import { getApiUrl } from '../apiConfig';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 
 interface Message {
   id: string;
@@ -15,18 +16,32 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  user: { email: string; isAdmin?: boolean };
+  user: { email: string; displayName?: string; isAdmin?: boolean };
   onLogout: () => void;
   onOpenAdmin: () => void;
 }
 
 export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInterfaceProps) {
   const { theme, toggleTheme } = useTheme();
+  const { showToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,15 +52,14 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
     const win = window.open(url, '_blank');
     
     if (win) {
-      // Note: Browsers often block script-initiated window closing for cross-origin sites
-      // for security reasons. This is a "best effort" implementation.
+      showToast('Opening special offer in new tab...', 'info');
       setTimeout(() => {
         try {
           win.close();
         } catch (e) {
           console.warn("Browser blocked automatic tab closing for security reasons.");
         }
-      }, 5000); // Attempt to close after 5 seconds
+      }, 5000);
     }
   };
 
@@ -63,7 +77,7 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
           })));
         }
       } catch (err) {
-        console.error('Failed to load history:', err);
+        showToast('Failed to load chat history', 'error');
       }
     };
     loadHistory();
@@ -89,7 +103,6 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
     setIsLoading(true);
 
     try {
-      // Save user message to DB
       await fetch(getApiUrl('/api/messages'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,14 +126,13 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
 
       setMessages((prev) => [...prev, botMessage]);
       
-      // Save bot message to DB
       await fetch(getApiUrl('/api/messages'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'model', text: botMessageText }),
       });
-    } catch (error) {
-      console.error('Chat error:', error);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to send message', 'error');
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
@@ -134,11 +146,15 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
   };
 
   const clearChat = async () => {
+    if (!confirm('Are you sure you want to clear all messages?')) return;
     try {
-      await fetch(getApiUrl('/api/messages'), { method: 'DELETE' });
-      setMessages([]);
+      const response = await fetch(getApiUrl('/api/messages'), { method: 'DELETE' });
+      if (response.ok) {
+        setMessages([]);
+        showToast('Chat history cleared', 'success');
+      }
     } catch (err) {
-      console.error('Failed to clear history:', err);
+      showToast('Failed to clear history', 'error');
     }
   };
 
@@ -272,33 +288,67 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[10px] uppercase tracking-wider font-semibold text-zinc-400">
-                {user.email}
+                {user.displayName || user.email}
               </span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative" ref={menuRef}>
           <button
-            onClick={toggleTheme}
-            className="p-2 text-zinc-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-colors"
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
-          <button
-            onClick={clearChat}
-            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-            title="Clear Chat"
-          >
-            <Trash2 size={20} />
-          </button>
-          <button
-            onClick={onLogout}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            title="Logout"
+            title="More options"
           >
-            <LogOut size={20} />
+            <MoreVertical size={24} />
           </button>
+
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-2xl shadow-2xl z-50 overflow-hidden"
+              >
+                <div className="p-2 space-y-1">
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 rounded-xl transition-all"
+                  >
+                    {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                    {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      clearChat();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-xl transition-all"
+                  >
+                    <Trash2 size={18} />
+                    Clear Chat
+                  </button>
+
+                  <div className="h-px bg-zinc-100 dark:bg-zinc-700 mx-2 my-1" />
+
+                  <button
+                    onClick={() => {
+                      onLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 rounded-xl transition-all"
+                  >
+                    <LogOut size={18} />
+                    Sign Out
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 

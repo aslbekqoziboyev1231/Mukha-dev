@@ -9,8 +9,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret";
 
 router.post("/register", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, displayName } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email and password required" });
+
+    // Display name validation
+    if (displayName) {
+      if (displayName.length > 12) return res.status(400).json({ error: "Display name max 12 characters" });
+      if (!/^[a-zA-Z0-9']+$/.test(displayName)) {
+        return res.status(400).json({ error: "Only letters, numbers and ' allowed in display name" });
+      }
+    }
 
     const restrictedEmails = ["admin@mukhaweb.com", "admin@mukha.com", "admin@it.com"];
     if (restrictedEmails.includes(email.toLowerCase())) {
@@ -22,16 +30,41 @@ router.post("/register", async (req, res) => {
 
     const userCount = await User.countDocuments();
     const isAdmin = userCount === 0 || 
-                    email.toLowerCase() === "admin@mukhadev.coom._admin_mukha" ||
-                    email.toLowerCase() === "admin@mukhadev.coom";
+                    email.toLowerCase() === "mukha-bot@admin.com";
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ email, password: hashedPassword, isAdmin });
+    const user = new User({ email, password: hashedPassword, displayName, isAdmin });
     await user.save();
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
     res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none" });
-    res.json({ message: "Registered successfully", user: { email: user.email } });
+    res.json({ message: "Registered successfully", user: { email: user.email, displayName: user.displayName } });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/update-profile", authenticate, async (req: any, res) => {
+  try {
+    const { email, password, displayName } = req.body;
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (displayName) {
+      if (displayName.length > 12) return res.status(400).json({ error: "Display name max 12 characters" });
+      if (!/^[a-zA-Z0-9']+$/.test(displayName)) {
+        return res.status(400).json({ error: "Only letters, numbers and ' allowed in display name" });
+      }
+      user.displayName = displayName;
+    }
+
+    if (email) user.email = email;
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+    res.json({ message: "Profile updated successfully", user: { email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -61,7 +94,7 @@ router.post("/logout", (req, res) => {
 router.get("/me", authenticate, async (req: any, res) => {
   const user = await User.findById(req.userId);
   if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ user: { email: user.email, isAdmin: user.isAdmin } });
+  res.json({ user: { email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
 });
 
 export default router;
