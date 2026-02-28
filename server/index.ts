@@ -5,10 +5,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { connectDB } from "./server/config/db.ts";
-import authRoutes from "./server/routes/auth.ts";
-import chatRoutes from "./server/routes/chat.ts";
-import knowledgeRoutes from "./server/routes/knowledge.ts";
+import { connectDB } from "./config/db.ts";
+import authRoutes from "./routes/auth.ts";
+import chatRoutes from "./routes/chat.ts";
+import knowledgeRoutes from "./routes/knowledge.ts";
 
 dotenv.config();
 
@@ -23,7 +23,7 @@ async function startServer() {
   await connectDB();
 
   app.use(cors({
-    origin: true, // Reflects the request origin, allowing any domain to connect
+    origin: true,
     credentials: true
   }));
   app.use(express.json());
@@ -34,7 +34,7 @@ async function startServer() {
   app.use("/api/messages", chatRoutes);
   app.use("/api/knowledge", knowledgeRoutes);
 
-  // Vite middleware for development
+  // Serve frontend
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -42,14 +42,16 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, "dist")));
+    // In production, serve from the dist folder which is in the root
+    const distPath = path.join(__dirname, "../dist");
+    app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 }
 

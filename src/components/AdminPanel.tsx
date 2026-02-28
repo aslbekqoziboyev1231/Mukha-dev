@@ -110,32 +110,32 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto p-6">
+    <div className="space-y-8 max-w-4xl mx-auto p-6 bg-white dark:bg-zinc-900 transition-colors duration-300">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-lg">
             <BookOpen size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-zinc-900">Knowledge Base</h2>
-            <p className="text-zinc-500 text-sm">Manage what Mukha knows</p>
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Knowledge Base</h2>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">Manage what Mukha knows</p>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm">
+        <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm">
           <AlertCircle size={18} />
           <p>{error}</p>
-          <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 rounded">
+          <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors">
             <X size={14} />
           </button>
         </div>
       )}
 
       {/* Add New Knowledge */}
-      <form onSubmit={handleAdd} className="bg-white p-6 rounded-3xl border border-zinc-100 shadow-sm space-y-4">
-        <h3 className="font-bold text-zinc-900 flex items-center gap-2">
+      <form onSubmit={handleAdd} className="bg-white dark:bg-zinc-800 p-6 rounded-3xl border border-zinc-100 dark:border-zinc-700 shadow-sm space-y-4">
+        <h3 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
           <Plus size={18} className="text-brand-600" />
           Add New Knowledge
         </h3>
@@ -145,14 +145,14 @@ export default function AdminPanel() {
             placeholder="Title (e.g., Company Policy)"
             value={newKnowledge.title}
             onChange={e => setNewKnowledge({ ...newKnowledge, title: e.target.value })}
-            className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all"
+            className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
             required
           />
           <textarea
             placeholder="Content..."
             value={newKnowledge.content}
             onChange={e => setNewKnowledge({ ...newKnowledge, content: e.target.value })}
-            className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all min-h-[100px]"
+            className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all min-h-[100px] text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
             required
           />
         </div>
@@ -168,13 +168,13 @@ export default function AdminPanel() {
 
       {/* Knowledge List */}
       <div className="space-y-4">
-        <h3 className="font-bold text-zinc-900 px-2">Existing Knowledge</h3>
+        <h3 className="font-bold text-zinc-900 dark:text-zinc-100 px-2">Existing Knowledge</h3>
         <div className="grid gap-4">
           {knowledge.map(k => (
             <motion.div
               key={k._id}
               layout
-              className="bg-white p-6 rounded-3xl border border-zinc-100 shadow-sm group"
+              className="bg-white dark:bg-zinc-800 p-6 rounded-3xl border border-zinc-100 dark:border-zinc-700 shadow-sm group"
             >
               {editingId === k._id ? (
                 <div className="space-y-4">
@@ -182,12 +182,12 @@ export default function AdminPanel() {
                     type="text"
                     value={editForm.title}
                     onChange={e => setEditForm({ ...editForm, title: e.target.value })}
-                    className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-zinc-900 dark:text-zinc-100"
                   />
                   <textarea
                     value={editForm.content}
                     onChange={e => setEditForm({ ...editForm, content: e.target.value })}
-                    className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none min-h-[100px]"
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none min-h-[100px] text-zinc-900 dark:text-zinc-100"
                   />
                   <div className="flex gap-2">
                     <button
@@ -198,7 +198,7 @@ export default function AdminPanel() {
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-xl font-bold hover:bg-zinc-200 transition-all"
+                      className="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl font-bold hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-all"
                     >
                       Cancel
                     </button>
@@ -207,19 +207,19 @@ export default function AdminPanel() {
               ) : (
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <h4 className="font-bold text-zinc-900">{k.title}</h4>
-                    <p className="text-sm text-zinc-600 whitespace-pre-wrap">{k.content}</p>
+                    <h4 className="font-bold text-zinc-900 dark:text-zinc-100">{k.title}</h4>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{k.content}</p>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => startEditing(k)}
-                      className="p-2 text-zinc-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
+                      className="p-2 text-zinc-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-all"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => handleDelete(k._id)}
-                      className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -229,7 +229,7 @@ export default function AdminPanel() {
             </motion.div>
           ))}
           {knowledge.length === 0 && (
-            <div className="text-center py-12 bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
+            <div className="text-center py-12 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-700">
               <p className="text-zinc-400 text-sm italic">Knowledge base is empty</p>
             </div>
           )}

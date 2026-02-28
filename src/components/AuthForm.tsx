@@ -44,26 +44,26 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-8 bg-white rounded-3xl shadow-2xl border border-zinc-100">
+    <div className="w-full max-w-md mx-auto p-8 bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-800 transition-colors duration-300">
       <div className="text-center mb-8">
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="w-16 h-16 bg-brand-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white shadow-xl shadow-brand-200"
+          className="w-16 h-16 bg-brand-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white shadow-xl shadow-brand-200 dark:shadow-brand-900/20"
         >
           {isLogin ? <LogIn size={32} /> : <UserPlus size={32} />}
         </motion.div>
-        <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">
+        <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
-        <p className="text-zinc-500 mt-2">
+        <p className="text-zinc-500 dark:text-zinc-400 mt-2">
           {isLogin ? 'Sign in to continue to Mukha Web' : 'Join Mukha Web and start chatting'}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-zinc-700 ml-1">Email Address</label>
+          <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 ml-1">Email Address</label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
             <input
@@ -72,13 +72,13 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-zinc-700 ml-1">Password</label>
+          <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 ml-1">Password</label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
             <input
@@ -87,7 +87,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
             />
           </div>
         </div>
@@ -98,7 +98,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-600 text-sm"
+              className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl flex items-start gap-3 text-red-600 dark:text-red-400 text-sm"
             >
               <AlertCircle className="shrink-0 mt-0.5" size={18} />
               <p className="font-medium">{error}</p>
