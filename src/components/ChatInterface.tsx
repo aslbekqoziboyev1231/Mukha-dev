@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Trash2, Sparkles, LogOut, Menu, X, Clock, MessageSquare, Shield, Sun, Moon, ExternalLink, MoreVertical } from 'lucide-react';
+import { Send, Bot, User, Loader2, Trash2, Sparkles, LogOut, Menu, X, Clock, MessageSquare, Shield, Sun, Moon, ExternalLink, MoreVertical, Mic, MicOff, Volume2, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
-import { getChatResponse } from '../services/gemini';
+import { getChatResponse, generateImage, generateSpeech } from '../services/gemini';
 import { cn } from '../lib/utils';
 import { getApiUrl } from '../apiConfig';
 import { useTheme } from '../context/ThemeContext';
@@ -12,6 +12,7 @@ interface Message {
   id: string;
   role: 'user' | 'model';
   text: string;
+  image?: string;
   timestamp: Date;
 }
 
@@ -29,8 +30,60 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      setIsListening(true);
+      recognitionRef.current?.start();
+    }
+  };
+
+  const speakText = async (text: string) => {
+    try {
+      setIsSpeaking(true);
+      const audioUrl = await generateSpeech(text);
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.onended = () => setIsSpeaking(false);
+        audio.play();
+      } else {
+        setIsSpeaking(false);
+      }
+    } catch (err) {
+      setIsSpeaking(false);
+    }
+  };
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -73,6 +126,7 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
             id: m._id,
             role: m.role,
             text: m.text,
+            image: m.image,
             timestamp: new Date(m.createdAt)
           })));
         }
@@ -103,24 +157,40 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
     setIsLoading(true);
 
     try {
-      await fetch(getApiUrl('/api/messages'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', text: input }),
-      });
+      // Check for image generation request
+      const isImageRequest = input.toLowerCase().includes('generate image') || 
+                             input.toLowerCase().includes('draw') || 
+                             input.toLowerCase().includes('create image') ||
+                             input.toLowerCase().includes('rasm yarat') ||
+                             input.toLowerCase().includes('chizib ber');
 
-      const history = messages.map((msg) => ({
-        role: msg.role,
-        parts: [{ text: msg.text }],
-      }));
+      let botMessageText = '';
+      let generatedImageUrl = undefined;
 
-      const response = await getChatResponse(input, history);
+      if (isImageRequest) {
+        generatedImageUrl = await generateImage(input);
+        botMessageText = generatedImageUrl ? 'Here is the image I generated for you:' : 'Sorry, I couldn\'t generate the image.';
+      } else {
+        await fetch(getApiUrl('/api/messages'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'user', text: input }),
+        });
+
+        const history = messages.map((msg) => ({
+          role: msg.role,
+          parts: [{ text: msg.text }],
+        }));
+
+        const response = await getChatResponse(input, history);
+        botMessageText = response.text || 'Sorry, I couldn\'t generate a response.';
+      }
       
-      const botMessageText = response.text || 'Sorry, I couldn\'t generate a response.';
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: botMessageText,
+        image: generatedImageUrl || undefined,
         timestamp: new Date(),
       };
 
@@ -129,7 +199,7 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
       await fetch(getApiUrl('/api/messages'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'model', text: botMessageText }),
+        body: JSON.stringify({ role: 'model', text: botMessageText, image: generatedImageUrl }),
       });
     } catch (error: any) {
       showToast(error.message || 'Failed to send message', 'error');
@@ -412,11 +482,28 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
                 <div className="markdown-body">
                   <Markdown>{message.text}</Markdown>
                 </div>
+                {message.image && (
+                  <div className="mt-3 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900">
+                    <img src={message.image} alt="Generated" className="w-full h-auto" referrerPolicy="no-referrer" />
+                  </div>
+                )}
                 <div className={cn(
-                  "text-[10px] mt-1 opacity-50",
-                  message.role === 'user' ? "text-right" : "text-left"
+                  "flex items-center gap-2 mt-2",
+                  message.role === 'user' ? "flex-row-reverse" : "flex-row"
                 )}>
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <div className="text-[10px] opacity-50">
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  {message.role === 'model' && (
+                    <button
+                      onClick={() => speakText(message.text)}
+                      disabled={isSpeaking}
+                      className="p-1 text-zinc-400 hover:text-brand-600 transition-colors disabled:opacity-50"
+                      title="Listen to response"
+                    >
+                      <Volume2 size={12} className={isSpeaking ? "animate-pulse" : ""} />
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -442,19 +529,32 @@ export default function ChatInterface({ user, onLogout, onOpenAdmin }: ChatInter
 
       {/* Input Area */}
       <footer className="p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 transition-colors duration-300">
-        <form onSubmit={handleSend} className="relative group">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            className="w-full pl-4 pr-14 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100"
-            disabled={isLoading}
-          />
+        <form onSubmit={handleSend} className="relative group flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message or ask to generate an image..."
+              className="w-full pl-4 pr-12 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100"
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={cn(
+                "absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
+                isListening ? "bg-red-500 text-white animate-pulse" : "text-zinc-400 hover:text-brand-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+              )}
+              title={isListening ? "Stop listening" : "Start voice input"}
+            >
+              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
+          </div>
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 top-2 bottom-2 px-4 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:hover:bg-brand-600 transition-all shadow-lg shadow-brand-200 flex items-center justify-center"
+            className="px-6 bg-brand-600 text-white rounded-2xl hover:bg-brand-700 disabled:opacity-50 disabled:hover:bg-brand-600 transition-all shadow-lg shadow-brand-200 flex items-center justify-center shrink-0"
           >
             {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
           </button>

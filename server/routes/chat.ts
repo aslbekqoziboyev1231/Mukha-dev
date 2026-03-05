@@ -15,8 +15,8 @@ router.get("/", authenticate, async (req: any, res) => {
 
 router.post("/", authenticate, async (req: any, res) => {
   try {
-    const { role, text } = req.body;
-    const message = new Message({ userId: req.userId, role, text });
+    const { role, text, image } = req.body;
+    const message = new Message({ userId: req.userId, role, text, image });
     await message.save();
     res.json(message);
   } catch (err: any) {

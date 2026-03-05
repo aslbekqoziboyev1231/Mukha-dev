@@ -6,27 +6,37 @@ export const connectDB = async () => {
   const MONGODB_URI = process.env.MONGODB_URI;
   if (MONGODB_URI) {
     try {
-      await mongoose.connect(MONGODB_URI);
-      console.log("Connected to MongoDB");
+      console.log("Attempting to connect to MongoDB...");
+      await mongoose.connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+        socketTimeoutMS: 45000,
+      });
+      console.log("Successfully connected to MongoDB");
       
-      // Drop problematic index if it exists to fix the duplicate key error
+      // Drop problematic index if it exists
       try {
         const collection = mongoose.connection.collection('users');
-        await collection.dropIndex('username_1');
-        console.log("Dropped problematic index: username_1");
-      } catch (e: any) {
-        // Index might not exist, ignore the error
-        if (e.codeName !== 'IndexNotFound') {
-          console.warn("Could not drop index username_1 (it might not exist):", e.message);
+        const indexes = await collection.indexes();
+        if (indexes.some(idx => idx.name === 'username_1')) {
+          await collection.dropIndex('username_1');
+          console.log("Dropped problematic index: username_1");
         }
+      } catch (e: any) {
+        console.warn("Index check/drop warning:", e.message);
       }
 
       await seedAdmin();
-    } catch (err) {
-      console.error("MongoDB connection error:", err);
+    } catch (err: any) {
+      console.error("CRITICAL: MongoDB connection failed!");
+      console.error("Error Name:", err.name);
+      console.error("Error Message:", err.message);
+      
+      if (err.message.includes("ETIMEDOUT") || err.message.includes("buffered")) {
+        console.error("TIP: This usually means your IP address is not whitelisted in MongoDB Atlas or the password is incorrect.");
+      }
     }
   } else {
-    console.warn("MONGODB_URI not found. Database features will be disabled.");
+    console.warn("MONGODB_URI not found in environment variables.");
   }
 };
 

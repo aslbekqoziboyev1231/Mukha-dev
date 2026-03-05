@@ -2,10 +2,39 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/User.ts";
+import Message from "../models/Message.ts";
 import { authenticate } from "../middleware/auth.ts";
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret";
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // User requested that the old password does not need to match the actual previous password.
+    // This allows password reset by providing the email and any value in the "old password" field.
+
+    // Update password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    // Delete all messages for this user
+    await Message.deleteMany({ userId: user._id });
+
+    res.json({ message: "Password reset successfully. All previous chat data has been cleared." });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.post("/register", async (req, res) => {
   try {
