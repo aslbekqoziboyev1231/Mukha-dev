@@ -31,11 +31,7 @@ async function startServer() {
 
   // Health check endpoint for UptimeRobot
   app.get("/health", (req, res) => {
-    res.json({ 
-      status: "ok", 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    });
+    res.status(200).json({ status: "ok" });
   });
 
   // API Routes
