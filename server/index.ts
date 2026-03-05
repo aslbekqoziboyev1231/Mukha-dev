@@ -29,6 +29,15 @@ async function startServer() {
   app.use(express.json());
   app.use(cookieParser());
 
+  // Health check endpoint for UptimeRobot
+  app.get("/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   // API Routes
   app.use("/api/auth", authRoutes);
   app.use("/api/messages", chatRoutes);
