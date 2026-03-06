@@ -2,7 +2,6 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/User.ts";
-import Message from "../models/Message.ts";
 import { authenticate } from "../middleware/auth.ts";
 
 const router = express.Router();
@@ -27,10 +26,7 @@ router.post("/reset-password", async (req, res) => {
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    // Delete all messages for this user
-    await Message.deleteMany({ userId: user._id });
-
-    res.json({ message: "Password reset successfully. All previous chat data has been cleared." });
+    res.json({ message: "Password reset successfully." });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -67,7 +63,7 @@ router.post("/register", async (req, res) => {
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
     res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none" });
-    res.json({ message: "Registered successfully", user: { email: user.email, displayName: user.displayName } });
+    res.json({ message: "Registered successfully", user: { email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -109,7 +105,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
     res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none" });
-    res.json({ message: "Logged in successfully", user: { email: user.email } });
+    res.json({ message: "Logged in successfully", user: { email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -123,7 +119,34 @@ router.post("/logout", (req, res) => {
 router.get("/me", authenticate, async (req: any, res) => {
   const user = await User.findById(req.userId);
   if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ user: { email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
+  res.json({ user: { email: user.email, displayName: user.displayName, isAdmin: user.isAdmin, imageCount: user.imageCount } });
+});
+
+router.post("/increment-image-count", authenticate, async (req: any, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const lastReset = new Date(user.lastImageReset);
+    
+    // Reset count if it's a new day
+    if (now.toDateString() !== lastReset.toDateString()) {
+      user.imageCount = 0;
+      user.lastImageReset = now;
+    }
+
+    if (user.imageCount >= 3) {
+      return res.status(403).json({ error: "Kunlik rasm yaratish limiti (3 ta) tugadi." });
+    }
+
+    user.imageCount += 1;
+    await user.save();
+
+    res.json({ success: true, imageCount: user.imageCount });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

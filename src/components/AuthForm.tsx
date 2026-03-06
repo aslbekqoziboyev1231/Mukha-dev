@@ -5,7 +5,7 @@ import { getApiUrl } from '../apiConfig';
 import { useToast } from '../context/ToastContext';
 
 interface AuthFormProps {
-  onSuccess: (user: { email: string; displayName?: string }) => void;
+  onSuccess: (user: { email: string; displayName?: string; isAdmin?: boolean }) => void;
 }
 
 export default function AuthForm({ onSuccess }: AuthFormProps) {

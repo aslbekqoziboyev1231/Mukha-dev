@@ -7,8 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB } from "./config/db.ts";
 import authRoutes from "./routes/auth.ts";
-import chatRoutes from "./routes/chat.ts";
-import knowledgeRoutes from "./routes/knowledge.ts";
+import imageRequestRoutes from "./routes/imageRequests.ts";
 
 dotenv.config();
 
@@ -26,7 +25,8 @@ async function startServer() {
     origin: true,
     credentials: true
   }));
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser());
 
   // Health check endpoint for UptimeRobot
@@ -36,8 +36,7 @@ async function startServer() {
 
   // API Routes
   app.use("/api/auth", authRoutes);
-  app.use("/api/messages", chatRoutes);
-  app.use("/api/knowledge", knowledgeRoutes);
+  app.use("/api/image-requests", imageRequestRoutes);
 
   // Serve frontend
   if (process.env.NODE_ENV !== "production") {

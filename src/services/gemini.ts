@@ -25,8 +25,7 @@ export async function generateImage(prompt: string) {
     contents: { parts: [{ text: prompt }] },
     config: {
       imageConfig: {
-        aspectRatio: "1:1",
-        imageSize: "1K"
+        aspectRatio: "1:1"
       }
     }
   }));
@@ -61,24 +60,12 @@ export async function generateSpeech(text: string) {
 }
 
 export async function getChatResponse(message: string, history: { role: "user" | "model"; parts: { text: string }[] }[]) {
-  // Fetch knowledge base with retry
-  let knowledgeContext = "";
-  try {
-    const response = await withRetry(() => fetch('/api/knowledge'), 2, 1000);
-    if (response.ok) {
-      const knowledge = await response.json();
-      if (knowledge && knowledge.length > 0) {
-        knowledgeContext = "\n\nKnowledge Base:\n" + knowledge.map((k: any) => `- ${k.title}: ${k.content}`).join("\n");
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch knowledge base:', err);
-  }
-
   const chat = ai.chats.create({
     model: chatModel,
     config: {
-      systemInstruction: `You are Mukha, a helpful and sophisticated AI assistant. Your tone is professional yet approachable. You provide concise and accurate information.${knowledgeContext}`,
+      systemInstruction: `You are Mukha, a helpful and sophisticated AI assistant. Your tone is professional yet approachable. You provide concise and accurate information. 
+      IMPORTANT: Always respond in plain text or Markdown. NEVER output raw JSON unless specifically requested by the user. 
+      If the user asks to generate an image, respond naturally in text, as the image generation is handled by a separate process.`,
     },
     history: history,
   });

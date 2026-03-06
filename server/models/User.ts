@@ -5,6 +5,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   displayName: { type: String, maxLength: 12 },
   isAdmin: { type: Boolean, default: false },
+  imageCount: { type: Number, default: 0 },
+  lastImageReset: { type: Date, default: Date.now },
 });
 
 // Use 'as any' to prevent OverwriteModelError in development while satisfying TS

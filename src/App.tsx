@@ -4,9 +4,10 @@ import AuthForm from './components/AuthForm';
 import AdminPanel from './components/AdminPanel';
 import { Loader2 } from 'lucide-react';
 import { getApiUrl } from './apiConfig';
+import { cn } from './lib/utils';
 
 export default function App() {
-  const [user, setUser] = useState<{ email: string; displayName?: string; isAdmin?: boolean } | null>(null);
+  const [user, setUser] = useState<{ email: string; displayName?: string; isAdmin?: boolean; imageCount?: number } | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [view, setView] = useState<'chat' | 'admin'>('chat');
 
@@ -46,34 +47,36 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center p-4 sm:p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 transition-colors duration-300">
       {user ? (
-        <div className="w-full max-w-4xl">
-          {view === 'chat' ? (
-            <ChatInterface 
-              user={user} 
-              onLogout={handleLogout} 
-              onOpenAdmin={() => setView('admin')} 
-            />
-          ) : (
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-colors duration-300">
-              <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
-                <button 
-                  onClick={() => setView('chat')}
-                  className="px-4 py-2 text-sm font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all flex items-center gap-2"
-                >
-                  ← Back to Chat
-                </button>
-                <span className="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-widest">Admin Mode</span>
+        <div className={cn("w-full h-screen flex flex-col", view === 'admin' && "items-center justify-center p-4 sm:p-8")}>
+          <div className={cn("w-full h-full", view === 'admin' && "max-w-4xl")}>
+            {view === 'chat' ? (
+              <ChatInterface 
+                user={user} 
+                onLogout={handleLogout} 
+                onOpenAdmin={() => setView('admin')} 
+              />
+            ) : (
+              <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-colors duration-300 h-full max-h-[90vh]">
+                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
+                  <button 
+                    onClick={() => setView('chat')}
+                    className="px-4 py-2 text-sm font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all flex items-center gap-2"
+                  >
+                    ← Back to Chat
+                  </button>
+                  <span className="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-widest">Admin Mode</span>
+                </div>
+                <div className="h-[calc(100%-60px)] overflow-y-auto">
+                  <AdminPanel />
+                </div>
               </div>
-              <div className="max-h-[80vh] overflow-y-auto">
-                <AdminPanel />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ) : (
-        <div className="dark w-full flex justify-center">
+        <div className="min-h-screen flex items-center justify-center p-4 sm:p-8">
           <AuthForm onSuccess={setUser} />
         </div>
       )}
