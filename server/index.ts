@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   // Connect to Database
   await connectDB();
@@ -29,14 +29,19 @@ async function startServer() {
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser());
 
-  // Health check endpoint for UptimeRobot
+  // Health check endpoints
   app.get("/health", (req, res) => {
-    res.status(200).json({ status: "ok" });
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   // API Routes
   app.use("/api/auth", authRoutes);
   app.use("/api/image-requests", imageRequestRoutes);
+
+  // Health check alias as requested by user
+  app.get("/api/health-check", (req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
 
   // Serve frontend
   if (process.env.NODE_ENV !== "production") {
@@ -54,7 +59,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(Number(PORT), "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
