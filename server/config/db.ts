@@ -54,7 +54,7 @@ async function seedAdmin() {
         displayName: "MukhaAdmin",
         isAdmin: true 
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     ) as any;
     console.log("Admin user seeded/updated:", admin.email);
   } catch (err) {

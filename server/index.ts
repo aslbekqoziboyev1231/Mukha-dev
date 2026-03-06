@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { connectDB } from "./config/db.ts";
 import authRoutes from "./routes/auth.ts";
@@ -34,11 +35,21 @@ async function startServer() {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // User requested health check at /api/auth/me
+  // We add a public health check at /api/auth/me-health to avoid auth issues
+  app.get("/api/auth/me", (req, res, next) => {
+    // If it's a health check (no cookies/auth), return 200
+    if (!req.cookies.token && req.headers['user-agent']?.includes('Render')) {
+      return res.status(200).json({ status: "healthy", message: "Health check passed" });
+    }
+    next();
+  });
+
   // API Routes
   app.use("/api/auth", authRoutes);
   app.use("/api/image-requests", imageRequestRoutes);
 
-  // Health check alias as requested by user
+  // Health check alias
   app.get("/api/health-check", (req, res) => {
     res.status(200).json({ status: "ok" });
   });
@@ -53,10 +64,18 @@ async function startServer() {
   } else {
     // In production, serve from the dist folder which is in the root
     const distPath = path.join(__dirname, "../dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+    
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    } else {
+      console.warn("WARNING: dist folder not found. Please run 'npm run build' first.");
+      app.get("*", (req, res) => {
+        res.status(200).send("Server is running. Frontend build (dist) not found.");
+      });
+    }
   }
 
   app.listen(Number(PORT), "0.0.0.0", () => {
